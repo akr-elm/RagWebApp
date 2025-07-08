@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Pipeline Test Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .step {
+            margin-bottom: 30px;
+        }
+        .step h3 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        .sources {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>RAG Pipeline Test Interface</h1>
+    
+    <!-- Status Display -->
+    <div class="container">
+        <h3>Pipeline Status</h3>
+        <div id="statusDisplay" class="info">
+            Ready to start...
+        </div>
+        <button onclick="checkStatus()">Refresh Status</button>
+        <button onclick="resetPipeline()">Reset Pipeline</button>
+    </div>
+
+    <!-- Step 1: Document Upload -->
+    <div class="container">
+        <div class="step" id="step1">
+            <h3>Step 1: Upload Documents</h3>
+            <div class="form-group">
+                <label for="fileInput">Select PDF or TXT files:</label>
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md">
+            </div>
+            <button onclick="uploadFiles()" id="uploadBtn">Upload Files</button>
+            <div id="uploadStatus"></div>
+        </div>
+    </div>
+
+    <!-- Step 2: Configuration -->
+    <div class="container">
+        <div class="step disabled" id="step2">
+            <h3>Step 2: Configure Pipeline</h3>
+            
+            <div class="form-group">
+                <label for="providerSelect">LLM Provider:</label>
+                <select id="providerSelect" onchange="updateModels()">
+                    <option value="">Select Provider</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modelSelect">Model:</label>
+                <select id="modelSelect">
+                    <option value="">Select Model</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="embedderSelect">Embedder:</label>
+                <select id="embedderSelect">
+                    <option value="">Select Embedder</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="chunkingSelect">Chunking Strategy:</label>
+                <select id="chunkingSelect">
+                    <option value="fixed">Fixed</option>
+                    <option value="semantic">Semantic</option>
+                    <option value="recursive">Recursive</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="chunkSize">Chunk Size:</label>
+                <input type="number" id="chunkSize" value="800" min="100" max="2000">
+            </div>
+            
+            <div class="form-group">
+                <label for="chunkOverlap">Chunk Overlap:</label>
+                <input type="number" id="chunkOverlap" value="100" min="0" max="500">
+            </div>
+            
+            <button onclick="configurePipeline()" id="configBtn">Configure Pipeline</button>
+            <div id="configStatus"></div>
+        </div>
+    </div>
+
+    <!-- Step 3: Initialize -->
+    <div class="container">
+        <div class="step disabled" id="step3">
+            <h3>Step 3: Initialize Pipeline</h3>
+            <p>This will create the vector index and prepare the pipeline for querying.</p>
+            <button onclick="initializePipeline()" id="initBtn">Initialize Pipeline</button>
+            <div id="initStatus"></div>
+        </div>
+    </div>
+
+    <!-- Step 4: Chat Interface -->
+    <div class="container">
+        <div class="step disabled" id="step4">
+            <h3>Step 4: Chat with Your Documents</h3>
+            
+            <div class="chat-container" id="chatContainer">
+                <div class="message bot-message">
+                    Welcome! Ask me anything about your uploaded documents.
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="questionInput">Your Question:</label>
+                <textarea id="questionInput" rows="3" placeholder="Ask a question about your documents..."></textarea>
+            </div>
+            
+            <button onclick="sendMessage()" id="chatBtn">Send Message</button>
+            <button onclick="clearChat()">Clear Chat</button>
+            <div id="chatStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        let availableOptions = {};
+
+        // Load available options on page load
+        window.onload = function() {
+            loadOptions();
+            checkStatus();
+        };
+
+        async function loadOptions() {
+            try {
+                const response = await fetch('/available-options');
+                availableOptions = await response.json();
+                
+                // Populate provider dropdown
+                const providerSelect = document.getElementById('providerSelect');
+                Object.keys(availableOptions.providers).forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider;
+                    option.textContent = provider.toUpperCase();
+                    providerSelect.appendChild(option);
+                });
+                
+                // Populate embedder dropdown
+                const embedderSelect = document.getElementById('embedderSelect');
+                availableOptions.embedders.forEach(embedder => {
+                    const option = document.createElement('option');
+                    option.value = embedder;
+                    option.textContent = embedder;
+                    embedderSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                showStatus('Failed to load options: ' + error.message, 'error');
+            }
+        }
+
+        function updateModels() {
+            const provider = document.getElementById('providerSelect').value;
+            const modelSelect = document.getElementById('modelSelect');
+            
+            // Clear existing options
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+            
+            if (provider && availableOptions.providers[provider]) {
+                availableOptions.providers[provider].forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+
+        async function uploadFiles() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                showStatus('Please select files to upload', 'error', 'uploadStatus');
+                return;
+            }
+            
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+            
+            try {
+                showStatus('Uploading files...', 'info', 'uploadStatus');
+                setButtonLoading('uploadBtn', true);
+                
+                const response = await fetch('/upload-documents', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Successfully uploaded ${files.length} files`, 'success', 'uploadStatus');
+                    enableStep('step2');
+                } else {
+                    showStatus('❌ Upload failed: ' + result.detail, 'error', 'uploadStatus');
+                }
+                
+            } catch (error) {
+                showStatus('❌ Upload error: ' + error.message, 'error', 'uploadStatus');
+            } finally {
+                setButtonLoading('uploadBtn', false);
+            }
+        }
+
+        async function configurePipeline() {
+            const provider = document.getElementById('providerSelect').value;
+            const model = document.getElementById('modelSelect').value;
+            const embedder = document.getElementById('embedderSelect').value;
+            const chunking_strategy = document.getElementById('chunkingSelect').value;
+            const chunk_size = parseInt(document.getElementById('chunkSize').value);
+            const chunk_overlap = parseInt(document.getElementById('chunkOverlap').value);
+            
+            if (!provider || !model || !embedder) {
+                showStatus('Please select all configuration options', 'error', 'configStatus');
+                return;
+            }
+            
+            try {
+                showStatus('Configuring pipeline...', 'info', 'configStatus');
+                setButtonLoading('configBtn', true);
+                
+                const response = await fetch('/configure-pipeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        provider,
+                        model,
+                        embedder,
+                        chunking_strategy,
+                        chunk_size,
+                        chunk_overlap
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('✅ Pipeline configured successfully', 'success', 'configStatus');
+                    enableStep('step3');
+                } else {
+                    showStatus('❌ Configuration failed: ' + result.detail, 'error', 'configStatus');
+                }
+                
+            } catch (error) {
+                showStatus('❌ Configuration error: ' + error.message, 'error', 'configStatus');
+            } finally {
+                setButtonLoading('configBtn', false);
+            }
+        }
+
+        async function initializePipeline() {
+            try {
+                showStatus('Initializing pipeline (this may take a few minutes)...', 'info', 'initStatus');
+                setButtonLoading('initBtn', true);
+                
+                const response = await fetch('/initialize-pipeline', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('🎉 Pipeline ready for chat!', 'success', 'initStatus');
+                    enableStep('step4');
+                } else {
+                    showStatus('❌ Initialization failed: ' + result.detail, 'error', 'initStatus');
+                }
+                
+            } catch (error) {
+                showStatus('❌ Initialization error: ' + error.message, 'error', 'initStatus');
+            } finally {
+                setButtonLoading('initBtn', false);
+            }
+        }
+
+        async function sendMessage() {
+            const questionInput = document.getElementById('questionInput');
+            const question = questionInput.value.trim();
+            
+            if (!question) {
+                showStatus('Please enter a question', 'error', 'chatStatus');
+                return;
+            }
+            
+            try {
+                // Add user message to chat
+                addMessageToChat(question, 'user');
+                questionInput.value = '';
+                
+                showStatus('Getting response...', 'info', 'chatStatus');
+                setButtonLoading('chatBtn', true);
+                
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addMessageToChat(result.response, 'bot', result.sources);
+                    showStatus('', '', 'chatStatus');
+                } else {
+                    showStatus('❌ Chat error: ' + result.detail, 'error', 'chatStatus');
+                }
+                
+            } catch (error) {
+                showStatus('❌ Chat error: ' + error.message, 'error', 'chatStatus');
+            } finally {
+                setButtonLoading('chatBtn', false);
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                let statusText = `Files: ${status.files_processed} | `;
+                statusText += `Provider: ${status.configuration.provider || 'None'} | `;
+                statusText += `Model: ${status.configuration.model || 'None'} | `;
+                statusText += `Ready: ${status.ready_for_chat ? '✅' : '❌'}`;
+                
+                document.getElementById('statusDisplay').textContent = statusText;
+                
+            } catch (error) {
+                document.getElementById('statusDisplay').textContent = 'Status check failed';
+            }
+        }
+
+        async function resetPipeline() {
+            if (confirm('Are you sure you want to reset the pipeline?')) {
+                try {
+                    await fetch('/reset', { method: 'POST' });
+                    location.reload();
+                } catch (error) {
+                    showStatus('Reset failed: ' + error.message, 'error');
+                }
+            }
+        }
+
+        function addMessageToChat(message, type, sources = null) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            messageDiv.innerHTML = `
+                <div>${message}</div>
+                ${sources ? `<div class="sources">Sources: ${sources.map(s => s.filename).join(', ')}</div>` : ''}
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function clearChat() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = '<div class="message bot-message">Chat cleared. Ask me anything!</div>';
+        }
+
+        function enableStep(stepId) {
+            document.getElementById(stepId).classList.remove('disabled');
+        }
+
+        function showStatus(message, type, elementId = 'statusDisplay') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function setButtonLoading(buttonId, loading) {
+            const button = document.getElementById(buttonId);
+            button.disabled = loading;
+            if (loading) {
+                button.textContent = button.textContent + ' (Loading...)';
+            } else {
+                button.textContent = button.textContent.replace(' (Loading...)', '');
+            }
+        }
+
+        // Allow Enter key to send messages
+        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
