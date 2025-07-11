@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 from llama_index.core import SimpleDirectoryReader
+from llama_index.readers.file import UnstructuredReader
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class DocumentLoader:
                 input_dir=self.documents_dir,
                 required_exts=[".pdf", ".txt", ".md"],
                 recursive=False,
+                file_extractor={".pdf": UnstructuredReader()}
             )
             documents = reader.load_data()
             

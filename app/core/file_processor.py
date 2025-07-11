@@ -34,7 +34,7 @@ class FileProcessor:
                     logger.warning(f"Unsupported file type: {uploaded_file.filename}")
                     continue
 
-                path = os.path.join(self.processed_dir_dir, uploaded_file.filename)
+                path = os.path.join(self.processed_dir, uploaded_file.filename)
                 with open(path, "wb") as f:
                     f.write(uploaded_file.file.read())
 

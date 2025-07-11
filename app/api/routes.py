@@ -29,7 +29,7 @@ async def get_available_options():
 async def upload_documents(files: List[UploadFile]):
     """Step 1: Upload and process documents"""
     try:
-        results = service.process_files(files)
+        results = service.process_uploaded_files(files)
         return {
             "status": "success",
             "message": f"Processed {len(files)} files",
