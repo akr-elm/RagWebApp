@@ -140,6 +140,5 @@ dmypy.json
 .coverage
 .cache
 
-Dockerfile
-docker-compose.yml
-.dockerignore
+
+notebooks/

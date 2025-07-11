@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  rag-app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DEFAULT_LLM=Ollama
+      - DEFAULT_MODEL=llama3.2:1b
+      - CHUNK_SIZE=800
+      - CHUNK_OVERLAP=200
+    volumes:
+      - ./data:/app/data
+      - ./vector_store:/app/vector_store
+    networks:
+      - rag-network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+    volumes:
+      - ./ollama_data:/ollama_data
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge
+
+volumes:
+  chroma_data:
