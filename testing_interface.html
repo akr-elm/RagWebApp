@@ -165,9 +165,11 @@
             <div class="form-group">
                 <label for="chunkingSelect">Chunking Strategy:</label>
                 <select id="chunkingSelect">
-                    <option value="fixed">Fixed</option>
+                    <option value="fixed">Fixed Size</option>
+                    <option value="recursive">Recursive (LlamaIndex)</option>
+                    <option value="langchain_recursive" selected>LangChain Recursive (Recommended)</option>
+                    <option value="token">Token-Based</option>
                     <option value="semantic">Semantic</option>
-                    <option value="recursive">Recursive</option>
                 </select>
             </div>
             

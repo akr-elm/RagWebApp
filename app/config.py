@@ -22,13 +22,19 @@ class Config:
     llm_provider: List[str] = field(default_factory=lambda: ['groq', 'ollama'])
     default_llm: str = 'groq'
     default_model: str = 'gemma2-9b-it'
-    ollama_models: List[str] = field(default_factory=lambda: ['llama3.2:1b', 'llama3.2:3b', 'mistral:7b'])
+    ollama_models: List[str] = field(default_factory=lambda: ['llama3.2:1b', 'llama3.2:3b', 'mistral:7b','tinyllama:latest'])
     temperature: float = 0.1
     max_tokens: int = 1024
     request_timeout: float = 600.0
 
     # Chunking settings
-    chunking_strategy: List[str] = field(default_factory=lambda: ["fixed", "semantic"])
+    chunking_strategy: List[str] = field(default_factory=lambda: [
+        "fixed", 
+        "recursive", 
+        "langchain_recursive",  # New
+        "token",               # New
+        "semantic"
+    ])
     chunk_size: int = 1500
     chunk_overlap: int = 200
 
@@ -47,7 +53,7 @@ class Config:
     # Available LLM providers and models
     available_providers: Dict[str, List[str]] = field(default_factory=lambda: {
     "groq": ["llama3-8b-8192", "llama3-70b-8192", "gemma2-9b-it", "mixtral-8x7b-32768"],
-    "ollama": ["llama3.2:1b", "llama3.2:3b", "llama3.2:8b", "mistral:7b", "codellama:7b"]
+    "ollama": ["llama3.2:1b", "llama3.2:3b", "mistral:7b","tinyllama:latest"],
     })
     
      # Available embedders
@@ -56,7 +62,7 @@ class Config:
             "all-mpnet-base-v2",       # Best quality, slower (multilingual)
             "paraphrase-multilingual-MiniLM-L12-v2",  # Good for French
             "distiluse-base-multilingual-cased",      # Multilingual, good balance
-            "LaBSE",                   # Language-agnostic BERT (excellent for French)
+            "LaBSE",                  # Language-agnostic BERT (excellent for French)
     ])
 
     def __post_init__(self):

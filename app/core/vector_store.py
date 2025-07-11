@@ -23,6 +23,7 @@ class VectorStoreHandler:
             logger.error(f"❌ Error initializing vector store: {e}")
             raise
 
+
     def create_index(self, chunks, embed_model):
         try:
             index = VectorStoreIndex(
