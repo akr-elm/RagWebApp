@@ -27,7 +27,8 @@ class LLMHandler:
         return Ollama(
             model=self.model_name,
             temperature=0,
-            request_timeout=100
+            request_timeout=100,
+            base_url='http://localhost:11434'
         )
     
     def get_llm(self):

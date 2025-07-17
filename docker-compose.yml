@@ -3,24 +3,14 @@ version: '3.8'
 services:
   rag-app3:
     build: .
-    ports:
-      - "8000:8000"
+    network_mode: host  # Use host networking
     environment:
       - DEFAULT_LLM=ollama
       - DEFAULT_MODEL=llama3.2:3b
       - CHUNK_SIZE=800
       - CHUNK_OVERLAP=200
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434  # Connect to host machine
+      - OLLAMA_BASE_URL=http://localhost:11434  # Use localhost with host networking
       - ANONYMIZED_TELEMETRY=false
     volumes:
       - ./data:/app/data
       - ./vector_store:/app/vector_store
-    networks:
-      - rag-network
-    # Add extra_hosts for Linux compatibility
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-networks:
-  rag-network:
-    driver: bridge
