@@ -2,7 +2,7 @@ import os
 import shutil
 import logging
 from pathlib import Path
-from app.config import get_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,9 +12,8 @@ class FileProcessor:
     """
 
     def __init__(self, raw_dir="data/raw", processed_dir="data/documents"):
-        config = get_config()
-        self.raw_dir = config.raw_dir or raw_dir
-        self.processed_dir = config.processed_dir or processed_dir
+        self.raw_dir = raw_dir
+        self.processed_dir = processed_dir
         os.makedirs(self.raw_dir, exist_ok=True)
         os.makedirs(self.processed_dir, exist_ok=True)
 

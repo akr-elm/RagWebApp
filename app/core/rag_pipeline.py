@@ -3,8 +3,6 @@ from app.core.embedder import Embedder
 from app.core.vector_store import VectorStoreHandler
 from app.core.document_loader import DocumentLoader
 from app.core.llm_handler import LLMHandler
-from app.config import get_config
-
 import logging
 import os
 
@@ -14,22 +12,20 @@ logger = logging.getLogger(__name__)
 class RAGPipeline:
     """Main RAG pipeline orchestrator"""
     
-    def __init__(self, provider=None, model_name=None, embedder_model=None):
-        config = get_config()
-        self.provider = provider or config.default_llm
-        self.model_name = model_name or config.default_model
+    def __init__(self, provider='Ollama', model_name='llama3.2:1b', embedder_model=None):
+        self.provider = provider 
+        self.model_name = model_name
         self.embedder_model = embedder_model or "all-MiniLM-L6-v2"  # Default embedder
         self.query_engine = None
         
-    def initialize(self, documents_dir=None, chunking_strategy=None, chunk_size=None, chunk_overlap=None, embedder_model=None):
+    def initialize(self, documents_dir='data/raw', chunking_strategy=None, chunk_size=None, chunk_overlap=None, embedder_model=None):
         """Initialize the complete RAG pipeline"""
-        config = get_config()
-        
+       
         # Use config defaults if not provided
-        documents_dir = documents_dir or config.processed_dir
-        chunking_strategy = chunking_strategy or config.chunking_strategy[0]
-        chunk_size = chunk_size or config.chunk_size
-        chunk_overlap = chunk_overlap or config.chunk_overlap
+        documents_dir = documents_dir
+        chunking_strategy = chunking_strategy 
+        chunk_size = chunk_size 
+        chunk_overlap = chunk_overlap 
         embedder_model = embedder_model or self.embedder_model
         
         try:

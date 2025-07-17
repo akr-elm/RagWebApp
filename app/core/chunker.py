@@ -2,7 +2,6 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.node_parser import HierarchicalNodeParser, SentenceSplitter, SemanticSplitterNodeParser
 from llama_index.core.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter, TokenTextSplitter, CharacterTextSplitter
-from app.config import get_config
 import os
 import logging
 
