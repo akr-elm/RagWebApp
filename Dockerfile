@@ -4,9 +4,12 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies for OCR + PDF
 RUN apt-get update && apt-get install -y \
     build-essential \
+    tesseract-ocr \
+    libtesseract-dev \
+    poppler-utils \
     curl \
     software-properties-common \
     git \
@@ -22,14 +25,23 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p data/raw data/documents vector_store
+RUN mkdir -p data/raw data/documents data/texts vector_store
 
 # Expose port
 EXPOSE 8000
 
-# Set environment variables
+# Environment config
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Command to run the application
+RUN python -c "from sentence_transformers import SentenceTransformer
+ SentenceTransformer('all-MiniLM-L6-v2')
+ SentenceTransformer('all-MiniLM-L12-v2')
+ SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2'),
+ "
+
+RUN chmod -R 755 data/ vector_store/ embedders_cache/ logs/
+
+
+# Command to run the app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
