@@ -16,8 +16,8 @@ class Config:
     #LLM settings
     llm_provider: List[str] = field(default_factory=lambda: [ 'ollama'])
     default_llm: str = 'ollama'
-    default_model: str = 'llama3.2:1b'
-    ollama_models: List[str] = field(default_factory=lambda: ['llama3.2:1b', 'llama3.2:3b', 'mistral:7b','tinyllama:latest'])
+    default_model: str = 'gemma2:2b'
+    ollama_models: List[str] = field(default_factory=lambda: ['llama3.2:1b','gemma2:2b', 'qwen2.5:1.5b', 'llama3.2:3b', 'mistral:7b','tinyllama:latest'])
 
     # Chunking settings
     chunking_strategy: List[str] = field(default_factory=lambda: [
@@ -35,7 +35,7 @@ class Config:
 
     # Available LLM providers and models
     available_providers: Dict[str, List[str]] = field(default_factory=lambda: {
-    "ollama": ["llama3.2:1b", "llama3.2:3b", "mistral:7b","tinyllama:latest"]
+    "ollama": ["gemma2:2b", "qwen2.5:1.5b", "llama3.2:3b", "mistral:7b","tinyllama:latest"]
     })
     
      # Available embedders

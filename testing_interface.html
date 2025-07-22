@@ -229,50 +229,54 @@
             checkStatus();
         };
 
-        async function loadOptions() {
-            try {
-                const response = await fetch('/available-options');
-                availableOptions = await response.json();
-                
-                // Populate provider dropdown
-                const providerSelect = document.getElementById('providerSelect');
-                Object.keys(availableOptions.providers).forEach(provider => {
-                    const option = document.createElement('option');
-                    option.value = provider;
-                    option.textContent = provider.toUpperCase();
-                    providerSelect.appendChild(option);
-                });
-                
-                // Populate embedder dropdown
-                const embedderSelect = document.getElementById('embedderSelect');
-                availableOptions.embedders.forEach(embedder => {
-                    const option = document.createElement('option');
-                    option.value = embedder;
-                    option.textContent = embedder;
-                    embedderSelect.appendChild(option);
-                });
-                
-            } catch (error) {
-                showStatus('Failed to load options: ' + error.message, 'error');
-            }
+async function loadOptions() {
+    try {
+        // Changed from '/available-options' to '/api/system/options'
+        const response = await fetch('/api/system/options');
+        availableOptions = await response.json();
+        
+        console.log('Loaded options:', availableOptions); // Debug log
+        
+        // Populate provider dropdown
+        const providerSelect = document.getElementById('providerSelect');
+        providerSelect.innerHTML = '<option value="">Select Provider</option>'; // Clear first
+        Object.keys(availableOptions.providers).forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider;
+            option.textContent = provider.toUpperCase();
+            providerSelect.appendChild(option);
+        });
+        
+        // Populate embedder dropdown
+        const embedderSelect = document.getElementById('embedderSelect');
+        embedderSelect.innerHTML = '<option value="">Select Embedder</option>'; // Clear first
+        availableOptions.embedders.forEach(embedder => {
+            const option = document.createElement('option');
+            option.value = embedder;
+            option.textContent = embedder;
+            embedderSelect.appendChild(option);
+        });
+        
+        // Populate chunking strategies (if available from API)
+        if (availableOptions.chunking_strategies) {
+            const chunkingSelect = document.getElementById('chunkingSelect');
+            chunkingSelect.innerHTML = ''; // Clear existing options
+            availableOptions.chunking_strategies.forEach(strategy => {
+                const option = document.createElement('option');
+                option.value = strategy;
+                option.textContent = strategy.replace('_', ' ').toUpperCase();
+                if (strategy === 'langchain_recursive') {
+                    option.selected = true; // Set default
+                }
+                chunkingSelect.appendChild(option);
+            });
         }
-
-        function updateModels() {
-            const provider = document.getElementById('providerSelect').value;
-            const modelSelect = document.getElementById('modelSelect');
-            
-            // Clear existing options
-            modelSelect.innerHTML = '<option value="">Select Model</option>';
-            
-            if (provider && availableOptions.providers[provider]) {
-                availableOptions.providers[provider].forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model;
-                    option.textContent = model;
-                    modelSelect.appendChild(option);
-                });
-            }
-        }
+        
+    } catch (error) {
+        console.error('Error loading options:', error); // Debug log
+        showStatus('Failed to load options: ' + error.message, 'error');
+    }
+}
 
         async function uploadFiles() {
             const fileInput = document.getElementById('fileInput');
@@ -292,7 +296,8 @@
                 showStatus('Uploading files...', 'info', 'uploadStatus');
                 setButtonLoading('uploadBtn', true);
                 
-                const response = await fetch('/upload-documents', {
+                // Changed from '/upload-documents' to '/api/documents/upload'
+                const response = await fetch('/api/documents/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -312,7 +317,24 @@
                 setButtonLoading('uploadBtn', false);
             }
         }
-
+        function updateModels() {
+            const providerSelect = document.getElementById('providerSelect');
+            const modelSelect = document.getElementById('modelSelect');
+            const selectedProvider = providerSelect.value;
+            
+            // Clear existing models
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+            
+            if (selectedProvider && availableOptions.providers && availableOptions.providers[selectedProvider]) {
+                // Populate models for selected provider
+                availableOptions.providers[selectedProvider].forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
         async function configurePipeline() {
             const provider = document.getElementById('providerSelect').value;
             const model = document.getElementById('modelSelect').value;
@@ -330,7 +352,8 @@
                 showStatus('Configuring pipeline...', 'info', 'configStatus');
                 setButtonLoading('configBtn', true);
                 
-                const response = await fetch('/configure-pipeline', {
+                // Changed from '/configure-pipeline' to '/api/pipeline/configure'
+                const response = await fetch('/api/pipeline/configure', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -366,7 +389,8 @@
                 showStatus('Initializing pipeline (this may take a few minutes)...', 'info', 'initStatus');
                 setButtonLoading('initBtn', true);
                 
-                const response = await fetch('/initialize-pipeline', {
+                // Changed from '/initialize-pipeline' to '/api/pipeline/initialize'
+                const response = await fetch('/api/pipeline/initialize', {
                     method: 'POST'
                 });
                 
@@ -403,7 +427,8 @@
                 showStatus('Getting response...', 'info', 'chatStatus');
                 setButtonLoading('chatBtn', true);
                 
-                const response = await fetch('/chat', {
+                // Changed from '/chat' to '/api/chat/'
+                const response = await fetch('/api/chat/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -429,31 +454,40 @@
 
         async function checkStatus() {
             try {
-                const response = await fetch('/status');
+                // Changed from '/status' to '/api/system/status'
+                const response = await fetch('/api/system/status');
                 const status = await response.json();
                 
                 let statusText = `Files: ${status.files_processed} | `;
-                statusText += `Provider: ${status.configuration.provider || 'None'} | `;
-                statusText += `Model: ${status.configuration.model || 'None'} | `;
+                statusText += `Provider: ${status.configuration?.provider || 'None'} | `;
+                statusText += `Model: ${status.configuration?.model || 'None'} | `;
                 statusText += `Ready: ${status.ready_for_chat ? '✅' : '❌'}`;
                 
                 document.getElementById('statusDisplay').textContent = statusText;
                 
             } catch (error) {
-                document.getElementById('statusDisplay').textContent = 'Status check failed';
+                document.getElementById('statusDisplay').textContent = 'Status check failed: ' + error.message;
+                console.error('Status check error:', error);
             }
         }
 
         async function resetPipeline() {
             if (confirm('Are you sure you want to reset the pipeline?')) {
                 try {
-                    await fetch('/reset', { method: 'POST' });
-                    location.reload();
+                    // Changed from '/reset' to '/api/system/reset'
+                    const response = await fetch('/api/system/reset', { method: 'POST' });
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        const result = await response.json();
+                        showStatus('Reset failed: ' + result.detail, 'error');
+                    }
                 } catch (error) {
                     showStatus('Reset failed: ' + error.message, 'error');
                 }
             }
         }
+
 
         function addMessageToChat(message, type, sources = null) {
             const chatContainer = document.getElementById('chatContainer');
