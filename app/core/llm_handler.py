@@ -2,6 +2,7 @@ from llama_index.llms.ollama import Ollama
 from llama_index.llms.groq import Groq
 from llama_index.core.llms import ChatMessage, MessageRole
 from app.config import get_config
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class LLMHandler:
     def _create_groq_llm(self):
         """Create Groq LLM instance"""        
         # Get API key from config
-        api_key = ''
+        api_key = os.getenv('GROQ_API_KEY')
         
         if not api_key:
             raise ValueError("Groq API key not found. Please set groq_api_key in config.")
