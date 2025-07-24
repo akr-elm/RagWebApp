@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  rag-app3:
+  rag-app4:
     build: .
     network_mode: host  # Use host networking
     environment:
       - DEFAULT_LLM=ollama
-      - DEFAULT_MODEL=llama3.2:3b
-      - CHUNK_SIZE=800
-      - CHUNK_OVERLAP=200
+      - DEFAULT_MODEL=gemma2:2b
+      - CHUNK_SIZE=512
+      - CHUNK_OVERLAP=50
       - OLLAMA_BASE_URL=http://localhost:11434  # Use localhost with host networking
       - ANONYMIZED_TELEMETRY=false
     volumes:

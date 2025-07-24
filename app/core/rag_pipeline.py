@@ -3,6 +3,7 @@ from app.core.embedder import Embedder
 from app.core.vector_store import VectorStoreHandler
 from app.core.document_loader import DocumentLoader
 from app.core.llm_handler import LLMHandler
+from llama_index.core import PromptTemplate
 import logging
 import os
 
@@ -12,34 +13,39 @@ logger = logging.getLogger(__name__)
 class RAGPipeline:
     """Main RAG pipeline orchestrator"""
     
-    def __init__(self, provider='Ollama', model_name='llama3.2:1b', embedder_model=None):
+    def __init__(self, provider='Ollama', model_name='gemma2:2b', embedder_model=None):
         self.provider = provider 
         self.model_name = model_name
-        self.embedder_model = embedder_model or "all-MiniLM-L6-v2"  # Default embedder
+        self.embedder_model = embedder_model or "LaBSE"  # Default embedder
         self.query_engine = None
         
     def initialize(self, documents_dir='data/raw', chunking_strategy=None, chunk_size=None, chunk_overlap=None, embedder_model=None):
         """Initialize the complete RAG pipeline"""
-       
-        # Use config defaults if not provided
-        documents_dir = documents_dir
-        chunking_strategy = chunking_strategy 
-        chunk_size = chunk_size 
-        chunk_overlap = chunk_overlap 
+    
+        # Provide proper defaults instead of passing None
+        documents_dir = documents_dir or 'data/raw'
+        chunking_strategy = chunking_strategy or 'langchain_recursive'  # Default strategy
+        chunk_size = chunk_size or 512  # Default chunk size
+        chunk_overlap = chunk_overlap or 50  # Default overlap
         embedder_model = embedder_model or self.embedder_model
         
         try:
             # Initialize components
             logger.info("🔧 Setting up components...")
-    
+            logger.info(f"📋 Configuration: strategy={chunking_strategy}, size={chunk_size}, overlap={chunk_overlap}")
+
             document_loader = DocumentLoader(documents_dir)
             
             # Initialize embedder with specified model
             logger.info(f"🧠 Initializing embedder: {embedder_model}")
             embedder = Embedder(model_name=embedder_model)
             
-            # Initialize chunker with better parameters for multiple documents
-            chunker = Chunker(chunk_size, chunk_overlap, chunking_strategy)
+            # Initialize chunker with validated parameters
+            chunker = Chunker(
+                chunk_size=chunk_size, 
+                chunk_overlap=chunk_overlap, 
+                strategy=chunking_strategy
+            )
             vector_store = VectorStoreHandler()
             llm_handler = LLMHandler(self.provider, self.model_name)
 
@@ -122,10 +128,34 @@ class RAGPipeline:
             # Adjust similarity_top_k based on number of chunks and documents
             top_k = min(5, max(2, len(chunks) // 2))  # Dynamic top_k
             
+            qa_prompt_tmpl = (
+                "Les informations contextuelles sont ci-dessous.\n"
+                "---------------------\n"
+                "{context_str}\n"
+                "---------------------\n"
+                "Instructions :\n"
+                "1. Lisez et analysez attentivement les informations contextuelles ci-dessus\n"
+                "2. Répondez à la question en utilisant UNIQUEMENT les informations fournies dans le contexte\n"
+                "3. Répondez dans la MÊME LANGUE que celle de la question\n"
+                "4. Si le contexte contient des informations pertinentes, fournissez une réponse complète\n"
+                "5. Si vous ne trouvez pas de réponse directe, fournissez des informations connexes issues du contexte qui pourraient être utiles\n"
+                "6. Si le contexte ne contient aucune information pertinente, indiquez-le clairement\n"
+                "7. Citez toujours les parties du contexte que vous avez utilisées dans votre réponse\n"
+                "\n"
+                "Question : {query_str}\n"
+                "\n"
+                "Réponse (dans la même langue que la question) :"
+            )
+
+
+            # Create prompt template
+            qa_prompt = PromptTemplate(qa_prompt_tmpl)
+
             self.query_engine = index.as_query_engine(
                 llm=llm_handler.get_llm(),
                 similarity_top_k=top_k,
-                response_mode="compact"
+                response_mode="tree_summarize",
+                text_qa_template=qa_prompt
             )
             
             logger.info(f"🎉 RAG pipeline ready! Using top_k={top_k} for retrieval")
@@ -136,45 +166,65 @@ class RAGPipeline:
             return False
 
     def query(self, question):
-        """Query the RAG pipeline with source attribution"""
+        """Query the RAG pipeline with source attribution and chunk printing"""
         if not self.query_engine:
             raise ValueError("Pipeline not initialized")
         
         try:
             response = self.query_engine.query(question)
             
-            # Get source information with deduplication
+            # Print retrieved chunks
+            logger.info(f"🔍 QUESTION: {question}")
+            logger.info("=" * 80)
+            
+            # Get source information with chunk details
             sources = []
             source_details = []
-            seen_files = set()  # Track files we've already seen
+            seen_files = set()
             
             if hasattr(response, 'source_nodes') and response.source_nodes:
-                logger.debug(f"Debug - Found {len(response.source_nodes)} source nodes")
+                logger.info(f"📚 RETRIEVED {len(response.source_nodes)} CHUNKS:")
+                logger.info("=" * 80)
                 
                 for i, node in enumerate(response.source_nodes):
-                    logger.debug(f"Debug - Node {i} metadata: {node.metadata}")
-                    
                     filename = node.metadata.get('filename', 'Unknown')
+                    chunk_id = node.metadata.get('chunk_id', 'N/A')
+                    chunk_size = len(node.text)
+                    score = getattr(node, 'score', 'N/A')
                     
-                    # Only add if we haven't seen this file before
+                    # Print chunk details
+                    logger.info(f"CHUNK #{i+1}:")
+                    logger.info(f"  📄 File: {filename}")
+                    logger.info(f"  🆔 Chunk ID: {chunk_id}")
+                    logger.info(f"  📏 Size: {chunk_size} chars")
+                    logger.info(f"  📊 Score: {score}")
+                    logger.info(f"  📝 Content:")
+                    logger.info(f"     {node.text[:200]}..." if len(node.text) > 200 else f"     {node.text}")
+                    logger.info("-" * 60)
+                    
+                    # Add to sources if new file
                     if filename not in seen_files:
                         seen_files.add(filename)
                         source_details.append({
                             'filename': filename,
-                            'text_preview': node.text[:100] + "..." if len(node.text) > 100 else node.text
+                            'text_preview': node.text[:100] + "..." if len(node.text) > 100 else node.text,
+                            'chunk_id': chunk_id,
+                            'score': score,
+                            'size': chunk_size
                         })
             else:
-                logger.debug("Debug - No source_nodes found in response")
+                logger.info("❌ No chunks retrieved!")
             
-            # Return ONLY the response text WITHOUT appending sources
-            response_text = str(response)
+            logger.info("=" * 80)
+            logger.info(f"💬 RESPONSE: {str(response)}")
+            logger.info("=" * 80)
             
-            # Don't append sources to response_text - let the frontend handle it
-            return response_text, source_details
+            return str(response), source_details
             
         except Exception as e:
             logger.error(f"Query error: {e}")
             raise
+
     def get_configuration(self):
         """Get current pipeline configuration"""
         return {
