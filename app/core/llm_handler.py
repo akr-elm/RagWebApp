@@ -35,7 +35,7 @@ class LLMHandler:
     def _create_groq_llm(self):
         """Create Groq LLM instance"""        
         # Get API key from config
-        api_key = 'os.getenv("GROQ_API_KEY")'
+        api_key = ''
         
         if not api_key:
             raise ValueError("Groq API key not found. Please set groq_api_key in config.")
