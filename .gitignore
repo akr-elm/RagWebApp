@@ -44,7 +44,6 @@ vector_store/
 *.db
 *.sqlite
 *.sqlite3
-models/
 checkpoints/
 weights/
 
