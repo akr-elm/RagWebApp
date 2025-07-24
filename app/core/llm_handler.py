@@ -2,9 +2,11 @@ from llama_index.llms.ollama import Ollama
 from llama_index.llms.groq import Groq
 from llama_index.core.llms import ChatMessage, MessageRole
 from app.config import get_config
+from dotenv import load_dotenv
 import os
 import logging
 
+load_dotenv()  # Load environment variables from .env file
 logger = logging.getLogger(__name__)
 
 class LLMHandler:
