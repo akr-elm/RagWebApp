@@ -17,15 +17,11 @@ class DocumentLoader:
     def load_documents(self):
         """Loads .pdf, .txt, .md — uses UnstructuredPDFLoader for PDFs automatically."""
         try:
-
             reader = SimpleDirectoryReader(
                 input_dir=self.documents_dir,
                 required_exts=[".pdf", ".txt", ".md"],
                 recursive=False,
-                file_extractor={".pdf": UnstructuredReader(),  # Enhanced extraction for PDFs
-                               ".txt": None, 
-                               ".md": None
-                               }
+                file_extractor={".pdf": UnstructuredReader()}
             )
             documents = reader.load_data()
             

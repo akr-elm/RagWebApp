@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Embedder:
-    def __init__(self, model_name="LaBSE"):
+    def __init__(self, model_name="all-MiniLM-L6-v2"):
         self.model_name = model_name
         self.embed_model = HuggingFaceEmbedding(model_name=f"sentence-transformers/{model_name}")
         logger.info(f"✅ Embedder initialized: {model_name}")
