@@ -48,7 +48,9 @@ class LLMHandler:
             api_key=api_key,
             temperature=0.1,
             max_tokens=1024,
-            request_timeout=100
+            request_timeout=100,
+            system_prompt="Tu es un assistant IA qui répond TOUJOURS en français. Peu importe la langue de la question, tu dois répondre uniquement en français. C'est une règle absolue."
+
         )
     
     def _create_ollama_llm(self):
@@ -57,7 +59,8 @@ class LLMHandler:
             model=self.model_name,
             temperature=0,
             request_timeout=100,
-            base_url='http://localhost:11434'
+            base_url='http://localhost:11434',
+            system_prompt="Tu es un assistant IA qui répond TOUJOURS en français. Peu importe la langue de la question, tu dois répondre uniquement en français. C'est une règle absolue."
         )
     
     def get_llm(self):

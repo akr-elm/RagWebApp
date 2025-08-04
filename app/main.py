@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     
     app = FastAPI(
         title=config.app_name,
-        description="Clean RAG Pipeline API",
+        description="RAG Pipeline API",
         version=config.version
     )
     
@@ -69,4 +69,4 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
