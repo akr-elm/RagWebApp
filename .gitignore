@@ -1,3 +1,6 @@
+
+import_analyser.py
+requirementsOG.txt
 # Python
 __pycache__/
 *.py[cod]

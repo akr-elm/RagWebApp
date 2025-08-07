@@ -80,7 +80,7 @@ class DocumentLoader:
             logger.error(f"Error loading documents: {e}")
             return []
     
-    def _extract_pdf_with_fallbacks(self, pdf_path, use_ocr_fallback=False):
+    def _extract_pdf_with_fallbacks(self, pdf_path, use_ocr_fallback=True):
         """
         Extract PDF text with multiple fallbacks:
         1. PyPDF2 (fastest, good for tables)
@@ -153,55 +153,80 @@ class DocumentLoader:
         except Exception as e:
             logger.warning(f"❌ pdfplumber failed: {e}")
         
-        # Method 4: Unstructured without OCR (optional, slower)
+        # Method 4: LlamaIndex SimpleDirectoryReader with Unstructured (fast, no OCR)
         if use_ocr_fallback:
             try:
-                logger.info("🔄 Trying Unstructured (fast, no OCR)...")
+                logger.info("🔄 Trying LlamaIndex with Unstructured (fast, no OCR)...")
                 start_time = time.time()
                 
-                from unstructured.partition.pdf import partition_pdf
+                from llama_index.core import SimpleDirectoryReader
+                from llama_index.readers.file import UnstructuredReader
                 
-                elements = partition_pdf(
-                    filename=str(pdf_path),
-                    strategy="fast",
-                    infer_table_structure=False,
-                    extract_images=False,
+                # Create UnstructuredReader with fast strategy
+                unstructured_reader = UnstructuredReader()
+                
+                # Use SimpleDirectoryReader with the unstructured reader
+                loader = SimpleDirectoryReader(
+                    input_files=[str(pdf_path)],
+                    file_extractor={".pdf": unstructured_reader},
+                    filename_as_id=True
                 )
-                text = "\n".join([str(el) for el in elements])
                 
-                if len(text.strip()) > 100:
+                documents = loader.load_data()
+                
+                if documents and len(documents[0].text.strip()) > 100:
+                    text = "\n\n".join([doc.text for doc in documents])
                     duration = time.time() - start_time
-                    logger.info(f"✅ Unstructured (fast) succeeded: {len(text):,} chars in {duration:.2f}s")
-                    return text, "Unstructured-fast"
+                    logger.info(f"✅ LlamaIndex + Unstructured (fast) succeeded: {len(text):,} chars in {duration:.2f}s")
+                    return text, "LlamaIndex-Unstructured-fast"
                 else:
-                    logger.warning(f"⚠️ Unstructured (fast): Only {len(text)} characters extracted")
-                    results.append(("Unstructured-fast", text, len(text)))
+                    text = "\n\n".join([doc.text for doc in documents]) if documents else ""
+                    logger.warning(f"⚠️ LlamaIndex + Unstructured (fast): Only {len(text)} characters extracted")
+                    results.append(("LlamaIndex-Unstructured-fast", text, len(text)))
                     
             except Exception as e:
-                logger.warning(f"❌ Unstructured (fast) failed: {e}")
+                logger.warning(f"❌ LlamaIndex + Unstructured (fast) failed: {e}")
             
-            # Method 5: Unstructured with OCR (very slow, last resort)
+            # Method 5: LlamaIndex SimpleDirectoryReader with Unstructured OCR (very slow, last resort)
             try:
-                logger.warning("🔄 Trying Unstructured with OCR (this may take several minutes)...")
+                logger.warning("🔄 Trying LlamaIndex with Unstructured OCR (this may take several minutes)...")
                 logger.warning("⏳ Please wait... OCR processing can be very slow")
                 start_time = time.time()
                 
-                elements = partition_pdf(
-                    filename=str(pdf_path),
-                    strategy="hi_res",
-                    infer_table_structure=True,
-                    extract_images=False,
-                    languages=["eng", "fra"],
+                from llama_index.core import SimpleDirectoryReader
+                from llama_index.readers.file import UnstructuredReader
+                
+                # Create UnstructuredReader with hi_res strategy for OCR
+                unstructured_reader = UnstructuredReader(
+                    # Configure for OCR processing
+                    partition_kwargs={
+                        "strategy": "hi_res",
+                        "infer_table_structure": True,
+                        "extract_images": False,
+                        "languages": ["eng", "fra"]
+                    }
                 )
-                text = "\n".join([str(el) for el in elements])
                 
-                duration = time.time() - start_time
-                logger.info(f"✅ Unstructured OCR succeeded: {len(text):,} chars in {duration:.2f}s")
-                return text, "Unstructured-OCR"
+                # Use SimpleDirectoryReader with the OCR-enabled unstructured reader
+                loader = SimpleDirectoryReader(
+                    input_files=[str(pdf_path)],
+                    file_extractor={".pdf": unstructured_reader},
+                    filename_as_id=True
+                )
                 
+                documents = loader.load_data()
+                
+                if documents:
+                    text = "\n\n".join([doc.text for doc in documents])
+                    duration = time.time() - start_time
+                    logger.info(f"✅ LlamaIndex + Unstructured OCR succeeded: {len(text):,} chars in {duration:.2f}s")
+                    return text, "LlamaIndex-Unstructured-OCR"
+                else:
+                    logger.error("❌ No documents returned from Unstructured OCR")
+                    
             except Exception as e:
-                logger.error(f"❌ Unstructured OCR failed: {e}")
-        
+                logger.error(f"❌ LlamaIndex + Unstructured OCR failed: {e}")
+                results.append(("LlamaIndex-Unstructured-OCR", "", 0))    
         # If all methods failed, return the best result we got
         if results:
             best_result = max(results, key=lambda x: x[2])  # Sort by character count

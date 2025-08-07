@@ -36,7 +36,7 @@ class Config:
     # Available LLM providers and models
     available_providers: Dict[str, List[str]] = field(default_factory=lambda: {
     "ollama": ["gemma2:2b", "qwen2.5:1.5b", "llama3.2:3b", "mistral:7b","tinyllama:latest"],
-    "groq": ["gemma2-9b-it", "llama-3.1-8b-instant"]
+    "groq": ["gemma2-9b-it", "llama-3.1-8b-instant","openai/gpt-oss-20b"]
     })
     
      # Available embedders

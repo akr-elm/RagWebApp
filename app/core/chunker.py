@@ -68,7 +68,7 @@ class Chunker:
     
     def _semantic_chunk(self, documents):
         """Semantic chunking based on content similarity"""
-        embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/LaBSE")
         splitter = SemanticSplitterNodeParser(
             embed_model=embed_model,
             buffer_size=1,
