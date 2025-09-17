@@ -16,13 +16,13 @@ class DocumentLoader:
         os.makedirs(self.texts_dir, exist_ok=True)
 
     def load_documents(self):
-        """Loads .pdf, .txt, .md — uses smart fallback extraction for PDFs."""
+        """Loads .pdf, .txt, .md, .docx — uses smart fallback extraction for PDFs and DOCX."""
         try:
             documents = []
             
-            # Get all files
+            # Get all files - added .docx support
             files = []
-            for ext in [".pdf", ".txt", ".md"]:
+            for ext in [".pdf", ".txt", ".md", ".docx"]:
                 pattern = f"*{ext}"
                 files.extend(Path(self.documents_dir).glob(pattern))
             
@@ -37,6 +37,9 @@ class DocumentLoader:
                     if file_path.suffix.lower() == ".pdf":
                         # Use smart fallback extraction for PDF files
                         text, extractor = self._extract_pdf_with_fallbacks(file_path)
+                    elif file_path.suffix.lower() == ".docx":
+                        # Use DOCX extraction with fallbacks
+                        text, extractor = self._extract_docx_with_fallbacks(file_path)
                     else:
                         # Use simple text reading for .txt and .md
                         with open(file_path, 'r', encoding='utf-8') as f:
@@ -80,6 +83,147 @@ class DocumentLoader:
             logger.error(f"Error loading documents: {e}")
             return []
     
+    def _extract_docx_with_fallbacks(self, docx_path):
+        """
+        Extract DOCX text with multiple fallbacks:
+        1. python-docx (fastest, best for simple documents)
+        2. LlamaIndex SimpleDirectoryReader (good for complex documents)
+        3. Unstructured (handles complex layouts, tables)
+        """
+        
+        docx_path = Path(docx_path)
+        if not docx_path.exists():
+            logger.error(f"File not found: {docx_path}")
+            return "", "error"
+        
+        logger.info(f"📄 Processing DOCX: {docx_path.name}")
+        results = []
+        
+        # Method 1: python-docx (fastest, good for basic documents)
+        try:
+            logger.info("🔄 Trying python-docx...")
+            start_time = time.time()
+            
+            from docx import Document as DocxDocument
+            
+            doc = DocxDocument(str(docx_path))
+            text = ""
+            
+            # Extract paragraphs
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text += paragraph.text + "\n"
+            
+            # Extract tables
+            for table in doc.tables:
+                text += "\n--- TABLE ---\n"
+                for row in table.rows:
+                    row_text = []
+                    for cell in row.cells:
+                        row_text.append(cell.text.strip())
+                    text += " | ".join(row_text) + "\n"
+                text += "--- END TABLE ---\n\n"
+            
+            if len(text.strip()) > 50:  # Reasonable amount of text
+                duration = time.time() - start_time
+                logger.info(f"✅ python-docx succeeded: {len(text):,} chars in {duration:.2f}s")
+                return text, "python-docx"
+            else:
+                logger.warning(f"⚠️ python-docx: Only {len(text)} characters extracted")
+                results.append(("python-docx", text, len(text)))
+                
+        except ImportError:
+            logger.warning("❌ python-docx not installed. Install with: pip install python-docx")
+        except Exception as e:
+            logger.warning(f"❌ python-docx failed: {e}")
+        
+        # Method 2: LlamaIndex SimpleDirectoryReader (built-in support)
+        try:
+            logger.info("🔄 Trying LlamaIndex SimpleDirectoryReader...")
+            start_time = time.time()
+            
+            from llama_index.core import SimpleDirectoryReader
+            
+            loader = SimpleDirectoryReader(
+                input_files=[str(docx_path)],
+                filename_as_id=True
+            )
+            
+            documents = loader.load_data()
+            
+            if documents and len(documents[0].text.strip()) > 50:
+                text = "\n\n".join([doc.text for doc in documents])
+                duration = time.time() - start_time
+                logger.info(f"✅ LlamaIndex succeeded: {len(text):,} chars in {duration:.2f}s")
+                return text, "LlamaIndex-SimpleDirectoryReader"
+            else:
+                text = "\n\n".join([doc.text for doc in documents]) if documents else ""
+                logger.warning(f"⚠️ LlamaIndex: Only {len(text)} characters extracted")
+                results.append(("LlamaIndex-SimpleDirectoryReader", text, len(text)))
+                
+        except Exception as e:
+            logger.warning(f"❌ LlamaIndex SimpleDirectoryReader failed: {e}")
+        
+        # Method 3: Unstructured (handles complex layouts)
+        try:
+            logger.info("🔄 Trying Unstructured...")
+            start_time = time.time()
+            
+            from llama_index.readers.file import UnstructuredReader
+            
+            unstructured_reader = UnstructuredReader()
+            documents = unstructured_reader.load_data(str(docx_path))
+            
+            if documents and len(documents[0].text.strip()) > 50:
+                text = "\n\n".join([doc.text for doc in documents])
+                duration = time.time() - start_time
+                logger.info(f"✅ Unstructured succeeded: {len(text):,} chars in {duration:.2f}s")
+                return text, "Unstructured"
+            else:
+                text = "\n\n".join([doc.text for doc in documents]) if documents else ""
+                logger.warning(f"⚠️ Unstructured: Only {len(text)} characters extracted")
+                results.append(("Unstructured", text, len(text)))
+                
+        except Exception as e:
+            logger.warning(f"❌ Unstructured failed: {e}")
+        
+        # Method 4: mammoth (for complex Word documents with formatting)
+        try:
+            logger.info("🔄 Trying mammoth...")
+            start_time = time.time()
+            
+            import mammoth
+            
+            with open(str(docx_path), "rb") as docx_file:
+                result = mammoth.extract_raw_text(docx_file)
+                text = result.value
+                
+                if result.messages:
+                    logger.info(f"Mammoth messages: {result.messages}")
+            
+            if len(text.strip()) > 50:
+                duration = time.time() - start_time
+                logger.info(f"✅ mammoth succeeded: {len(text):,} chars in {duration:.2f}s")
+                return text, "mammoth"
+            else:
+                logger.warning(f"⚠️ mammoth: Only {len(text)} characters extracted")
+                results.append(("mammoth", text, len(text)))
+                
+        except ImportError:
+            logger.warning("❌ mammoth not installed. Install with: pip install mammoth")
+        except Exception as e:
+            logger.warning(f"❌ mammoth failed: {e}")
+        
+        # If all methods failed, return the best result we got
+        if results:
+            best_result = max(results, key=lambda x: x[2])  # Sort by character count
+            method, text, char_count = best_result
+            logger.warning(f"⚠️ All primary methods had issues. Using best result from {method}: {char_count} chars")
+            return text, f"{method}-fallback"
+        
+        logger.error("❌ All DOCX extraction methods failed!")
+        return "", "failed"
+
     def _extract_pdf_with_fallbacks(self, pdf_path, use_ocr_fallback=True):
         """
         Extract PDF text with multiple fallbacks:

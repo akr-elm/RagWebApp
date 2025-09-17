@@ -207,7 +207,7 @@ class RAGPipeline:
                         seen_files.add(filename)
                         source_details.append({
                             'filename': filename,
-                            'text_preview': node.text[:100] + "..." if len(node.text) > 100 else node.text,
+                            'text_preview': node.text,
                             'chunk_id': chunk_id,
                             'score': score,
                             'size': chunk_size

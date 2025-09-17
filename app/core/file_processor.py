@@ -3,12 +3,11 @@ import shutil
 import logging
 from pathlib import Path
 
-
 logger = logging.getLogger(__name__)
 
 class FileProcessor:
     """
-    Saves uploaded files directly — no manual PDF extraction needed!
+    Saves uploaded files directly — now supports DOCX files!
     """
 
     def __init__(self, raw_dir="data/raw", processed_dir="data/documents"):
@@ -29,8 +28,14 @@ class FileProcessor:
             try:
                 ext = uploaded_file.filename.lower().split(".")[-1]
 
-                if ext not in ["pdf", "txt", "md"]:
+                # Updated to support DOCX files
+                if ext not in ["pdf", "txt", "md", "docx"]:
                     logger.warning(f"Unsupported file type: {uploaded_file.filename}")
+                    results.append({
+                        "original": uploaded_file.filename,
+                        "success": False,
+                        "error": f"Unsupported file type: .{ext}"
+                    })
                     continue
 
                 path = os.path.join(self.processed_dir, uploaded_file.filename)

@@ -17,7 +17,7 @@ class Config:
     llm_provider: List[str] = field(default_factory=lambda: [ 'ollama', 'groq'])
     default_llm: str = 'ollama'
     default_model: str = 'gemma2:2b'
-    ollama_models: List[str] = field(default_factory=lambda: ['llama3.2:1b','gemma2:2b', 'qwen2.5:1.5b','llama3.2:1b', 'llama3.2:3b', 'mistral:7b','tinyllama:latest'])
+    ollama_models: List[str] = field(default_factory=lambda: ['gemma2:2b', 'qwen2.5:1.5b','llama3.2:1b', 'llama3.2:3b', 'mistral:7b','tinyllama:latest'])
 
     # Chunking settings
     chunking_strategy: List[str] = field(default_factory=lambda: [
@@ -29,22 +29,19 @@ class Config:
     ])
 
     # Document loader settings
-    document_types: List[str] = field(default_factory=lambda: ['txt', 'pdf'])
+    document_types: List[str] = field(default_factory=lambda: ['txt', 'pdf','docx','md'])  # Added 'docx'
     max_file_size_mb: int = 50
 
 
     # Available LLM providers and models
     available_providers: Dict[str, List[str]] = field(default_factory=lambda: {
-    "ollama": ["gemma2:2b", "qwen2.5:1.5b", "llama3.2:3b", "mistral:7b","tinyllama:latest"],
+    "ollama": ["gemma2:2b", "qwen2.5:1.5b", "llama3.2:3b", "mistral:7b","llama3.2:1b"],
     "groq": ["gemma2-9b-it", "llama-3.1-8b-instant","openai/gpt-oss-20b"]
     })
     
      # Available embedders
     available_embedders: List[str] = field(default_factory=lambda: [
             "all-MiniLM-L6-v2",        # Fast, good performance (multilingual)
-            "all-mpnet-base-v2",       # Best quality, slower (multilingual)
-            "paraphrase-multilingual-MiniLM-L12-v2",  # Good for French
-            "distiluse-base-multilingual-cased",      # Multilingual, good balance
             "LaBSE",                  # Language-agnostic BERT (excellent for French)
     ])
 

@@ -5,9 +5,9 @@ class PipelineConfig(BaseModel):
     provider: str
     model: str
     embedder: str
-    chunking_strategy: str = "langchain_recursive"
-    chunk_size: int = Field(default=800, ge=100, le=2000)
-    chunk_overlap: int = Field(default=100, ge=0, le=500)
+    chunking_strategy: str = "recursive"
+    chunk_size: int = Field(default=400, ge=100, le=2000)
+    chunk_overlap: int = Field(default=50, ge=0, le=500)
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)

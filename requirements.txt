@@ -29,3 +29,5 @@ torchvision==0.19.1
 transformers==4.44.0
 unstructured==0.18.3
 uvicorn==0.35.0
+python-docx==0.8.11
+mammoth==1.6.0
